@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily News Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font - Inter */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Adding a subtle animation for button clicks */
+        .btn-active-scale:active {
+            transform: scale(0.98);
+        }
+        /* Custom styles for loading spinner */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3b82f6; /* Blue-500 for consistency with potential primary actions */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block; /* Initially hidden */
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Ensure newsDisplayArea is responsive and has a minimum height */
+        #newsDisplayArea {
+            min-height: 150px;
+            white-space: pre-wrap; /* Preserves whitespace and newlines, wraps text */
+            word-wrap: break-word; /* Breaks long words to prevent overflow */
+            line-height: 1.6; /* Improved line spacing for readability */
+        }
+        #newsDisplayArea p {
+            margin-bottom: 1em; /* Spacing between paragraphs */
+        }
+        #newsDisplayArea h3 { /* Style for # Heading */
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-top: 0.5em;
+            margin-bottom: 0.25em;
+        }
+        #newsDisplayArea a {
+            color: var(--color-primary-button-bg);
+            text-decoration: underline;
+        }
+         #newsDisplayArea a:hover {
+            color: var(--color-primary-button-hover-bg);
+        }
+
+        /* New color scheme variables */
+        :root {
+            --color-bg-page: #F8F7F3; 
+            --color-bg-container: #FFFFFF; 
+            --color-header-bg: #1A202C; 
+            --color-header-text: #FFFFFF;
+            --color-primary-button-bg: #2563EB; 
+            --color-primary-button-hover-bg: #1D4ED8; 
+            --color-secondary-button-bg: #4B5563; 
+            --color-secondary-button-hover-bg: #374151; 
+            --color-copy-button-bg: #CA8A04; /* Amber/Yellow for copy */
+            --color-copy-button-hover-bg: #A16207;
+            --color-download-button-bg: #16A34A; /* Green for download */
+            --color-download-button-hover-bg: #15803D;
+            --color-text-dark: #1F2937; 
+            --color-text-medium: #4B5563; 
+            --color-text-light: #6B7280; 
+            --color-border: #D1D5DB; 
+        }
+        /* Style the action buttons */
+        .action-button {
+            display: inline-flex; 
+            align-items: center;
+            justify-content: center;
+            padding-top: 0.75rem; 
+            padding-bottom: 0.75rem; 
+            padding-left: 1rem; 
+            padding-right: 1rem;
+            border-radius: 0.5rem; 
+            font-weight: 600; 
+            color: white;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); 
+            transition-property: all;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+            text-decoration: none; 
+        }
+        .action-button:hover {
+             box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); 
+        }
+         .action-button:active {
+            transform: scale(0.98);
+        }
+        .action-button svg {
+             margin-right: 0.5rem; 
+        }
+        .download-button {
+             background-color: var(--color-download-button-bg);
+        }
+        .download-button:hover {
+            background-color: var(--color-download-button-hover-bg);
+        }
+        .copy-button {
+            background-color: var(--color-copy-button-bg);
+        }
+        .copy-button:hover {
+            background-color: var(--color-copy-button-hover-bg);
+        }
+        /* Styling for the image link display */
+        #imageLinkDisplay {
+            word-wrap: break-word; /* Ensure long links wrap */
+            overflow-wrap: break-word; /* Modern equivalent for better wrapping */
+        }
+        #imageLinkDisplay a {
+            color: var(--color-primary-button-bg);
+            text-decoration: underline;
+        }
+        #imageLinkDisplay a:hover {
+            color: var(--color-primary-button-hover-bg);
+        }
+
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-[var(--color-bg-page)] min-h-screen flex flex-col items-center justify-center p-4">
+
+    <div class="bg-[var(--color-bg-container)] p-6 sm:p-8 rounded-xl shadow-2xl w-full max-w-2xl">
+        <header class="mb-6 sm:mb-8 text-center bg-[var(--color-header-bg)] text-[var(--color-header-text)] py-6 px-4 rounded-lg">
+            <h1 class="text-3xl sm:text-4xl font-bold">Daily News Generator</h1>
+            <p class="text-gray-300 mt-2">Create and visualize your daily news snippets.</p>
+        </header>
+
+        <section id="newsGenerationSection" class="mb-6">
+            <h2 class="text-xl font-semibold text-[var(--color-text-dark)] mb-3">Step 1: Generate News Content</h2>
+            <button id="generateNewsButton" class="w-full bg-[var(--color-primary-button-bg)] hover:bg-[var(--color-primary-button-hover-bg)] text-white font-semibold py-3 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-150 ease-in-out btn-active-scale flex items-center justify-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5h1.5m-1.5 3h1.5m-7.5 3h7.5m-7.5 3h7.5m3-9h3.375c.621 0 1.125.504 1.125 1.125V18a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 18V7.125C4.5 6.504 5.004 6 5.625 6H9" />
+                </svg>
+                <span>Generate Daily News</span>
+            </button>
+            <div id="newsGenerationStatus" class="mt-3 text-sm text-[var(--color-text-medium)] min-h-[20px]"></div>
+            <div id="newsLoader" class="loader mt-2 mx-auto" style="display: none;"></div>
+        </section>
+
+        <section id="newsEditingSection" class="mb-6">
+            <h2 class="text-xl font-semibold text-[var(--color-text-dark)] mb-3">Step 2: Edit News & Generate Image</h2>
+            <label for="newsDisplayArea" class="block text-sm font-medium text-[var(--color-text-dark)] mb-1">AI Generated News Text:</label>
+            <div id="newsDisplayArea" class="w-full p-3 border border-[var(--color-border)] rounded-lg shadow-sm min-h-[150px] bg-white text-[var(--color-text-dark)]" placeholder="News text will appear here after generation..."></div>
+            
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2"> 
+                <button id="copyTextButton" class="action-button copy-button w-full" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.11-7.5-8.866M15.75 17.25H18a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 18 4.5h-3.375m0 13.5h-1.5M12 12.75a.75.75 0 0 0 .75-.75V11.25a.75.75 0 0 0-1.5 0v.75c0 .414.336.75.75.75Z" />
+                    </svg>
+                    <span>Copy Text</span>
+                </button>
+                <button id="generateImageButton" class="action-button w-full bg-[var(--color-secondary-button-bg)] hover:bg-[var(--color-secondary-button-hover-bg)]" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 0 0 1.5-1.5V6a1.5 1.5 0 0 0-1.5-1.5H3.75A1.5 1.5 0 0 0 2.25 6v12a1.5 1.5 0 0 0 1.5 1.5Zm10.5-11.25h.008v.008h-.008V8.25Zm.158 0a.225.225 0 1 1-.45 0 .225.225 0 0 1 .45 0Z" />
+                    </svg>
+                    <span>Generate Image</span>
+                </button>
+                <a id="downloadImageLink" href="#" download="generated_image.png" class="action-button download-button w-full" style="display: none;">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                    </svg>
+                    <span>Download Image</span>
+                </a>
+            </div>
+
+            <div id="imageGenerationStatus" class="mt-3 text-sm text-[var(--color-text-medium)] min-h-[20px]"></div>
+            <div id="imageLoader" class="loader mt-2 mx-auto" style="display: none;"></div>
+        </section>
+
+        <section id="imageDisplaySection">
+            <h2 class="text-xl font-semibold text-[var(--color-text-dark)] mb-3">Generated Image Link:</h2>
+            <div id="imageLinkDisplay" class="w-full p-3 border border-[var(--color-border)] rounded-lg shadow-sm min-h-[50px] flex items-center justify-center text-center break-words overflow-hidden">
+                 <span class="text-gray-500">Image link will appear here...</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-lg aspect-video flex items-center justify-center overflow-hidden border border-[var(--color-border)] mt-2" style="display: none;"> <img id="generatedImage" src="https://placehold.co/600x338/E0E0E0/666666?text=Image+will+appear+here" alt="Generated News Image" class="w-full h-full object-cover rounded-lg">
+            </div>
+        </section>
+
+        <div id="messageBox" class="fixed top-5 right-5 bg-red-600 text-white p-4 rounded-lg shadow-lg text-sm" style="display: none;">
+            <span id="messageText"></span>
+            <button id="closeMessageButton" class="ml-2 font-bold">X</button>
+        </div>
+
+    </div>
+
+    <script>
+        // DOM Elements
+        const generateNewsButton = document.getElementById('generateNewsButton');
+        const newsDisplayArea = document.getElementById('newsDisplayArea'); 
+        const generateImageButton = document.getElementById('generateImageButton');
+        const copyTextButton = document.getElementById('copyTextButton'); 
+        const generatedImage = document.getElementById('generatedImage');
+        const imageDisplaySectionDiv = document.querySelector('#imageDisplaySection > div:not(#imageLinkDisplay)'); 
+        const imageLinkDisplay = document.getElementById('imageLinkDisplay'); 
+        const newsGenerationStatus = document.getElementById('newsGenerationStatus');
+        const imageGenerationStatus = document.getElementById('imageGenerationStatus');
+        const newsLoader = document.getElementById('newsLoader');
+        const imageLoader = document.getElementById('imageLoader');
+        const downloadImageLink = document.getElementById('downloadImageLink'); 
+        
+        // Message Box Elements
+        const messageBox = document.getElementById('messageBox');
+        const messageText = document.getElementById('messageText');
+        const closeMessageButton = document.getElementById('closeMessageButton');
+
+        // Webhook URLs
+        const newsWebhookUrl = 'https://agentify360.app.n8n.cloud/webhook/1ad022c2-e67d-4027-a66f-d06d637dc50c/chat'; // UPDATED URL
+        const imageWebhookUrl = 'https://agentify360.app.n8n.cloud/webhook/76840a22-558d-4fae-9f51-aadcd7c3fb7f';
+
+        let currentObjectUrl = null; 
+
+        // Function to generate a simple unique Chat ID
+        function generateChatID() {
+            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        }
+
+        // Function to show a message in the custom message box
+        function showMessage(message, isError = false) {
+            messageText.textContent = message;
+            messageBox.className = `fixed top-5 right-5 p-4 rounded-lg shadow-lg text-sm ${isError ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`;
+            messageBox.style.display = 'block';
+            setTimeout(() => {
+                messageBox.style.display = 'none';
+            }, 7000);
+        }
+
+        closeMessageButton.addEventListener('click', () => {
+            messageBox.style.display = 'none';
+        });
+
+        /**
+         * Extracts news text from a potentially JSON-formatted string,
+         * cleans some Markdown/HTML, and converts basic Markdown to HTML for display.
+         * @param {string} outputString The string received from the webhook (data.output).
+         * @returns {string} The HTML formatted string for display.
+         */
+        function extractAndFormatNewsTextToHTML(outputString) {
+            if (typeof outputString !== 'string') {
+                console.warn("extractAndFormatNewsTextToHTML: input is not a string", outputString);
+                return '<p class="text-red-500">[Invalid input to text formatter]</p>';
+            }
+
+            let newsContent = outputString; 
+            try {
+                const firstParse = JSON.parse(outputString);
+                if (firstParse && typeof firstParse["AI News piece"] === 'string') {
+                    newsContent = firstParse["AI News piece"];
+                } else {
+                    const commonKeys = ["article_text", "content", "text", "summary", "message", "news_content", "article"];
+                    let found = false;
+                    for (const key of commonKeys) {
+                        if (typeof firstParse[key] === 'string') {
+                            newsContent = firstParse[key];
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        console.warn("Parsed outputString as JSON, but no recognized news text field found. Raw JSON:", firstParse);
+                         if (firstParse.urls && Array.isArray(firstParse.urls)) { // Example: if JSON contains a list of URLs
+                             return `<p class="text-red-500">[Received structured data with ${firstParse.urls.length} URLs. Main news text not found.]</p><p>${firstParse.urls.map(url => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`).join("<br>")}</p>`;
+                        }
+                        return '<p class="text-red-500">[Structured data received, but main news text could not be extracted. Check webhook output (data.output).]</p>';
+                    }
+                }
+            } catch (e) {
+                console.log("outputString was not a stringified JSON. Treating as direct text for HTML formatting.", e.message);
+            }
+            
+            let htmlText = String(newsContent);
+
+            // 1. Handle escaped newlines first
+            htmlText = htmlText.replace(/\\n/g, '\n');
+
+            // 2. Basic HTML escaping for security (important before injecting as HTML)
+            const escapeDiv = document.createElement('div');
+            escapeDiv.textContent = htmlText;
+            htmlText = escapeDiv.innerHTML; // Now htmlText is HTML-escaped plain text
+
+            // 3. Convert Markdown bold and italics to HTML
+            htmlText = htmlText.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); 
+            htmlText = htmlText.replace(/__(.*?)__/g, '<b>$1</b>');   
+            htmlText = htmlText.replace(/\*(.*?)\*/g, '<i>$1</i>');     
+            htmlText = htmlText.replace(/_(.*?)_/g, '<i>$1</i>');       
+            
+            // 4. Convert specific phrases like "Top article:" and "Next 7 articles:" to bolded paragraphs
+            htmlText = htmlText.replace(/^Top article:/gim, '<p class="mt-2 mb-1"><b>Top article:</b></p>');
+            htmlText = htmlText.replace(/^Next 7 articles:/gim, '<p class="mt-2 mb-1"><b>Next 7 articles:</b></p>');
+            // Convert general Markdown headings
+            htmlText = htmlText.replace(/^#+\s+(.*)/gm, '<h3>$1</h3>'); 
+
+            // 5. Convert Markdown links [text](url) to HTML links
+            htmlText = htmlText.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">$1</a>');
+
+            // 6. Convert standalone URLs to HTML links
+            const urlRegex = /(\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|!:,.;]*[-A-Z0-9+&@#\/%=~_|])(?![^<]*<\/a>|[^<>]*>)/ig;
+            htmlText = htmlText.replace(urlRegex, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline">$1</a>');
+            
+            // 7. Convert actual newlines to <br> for HTML display, and handle paragraph-like spacing
+            // Split by double newlines first to create paragraphs, then single newlines to <br>
+            htmlText = htmlText.split(/\n\s*\n/).map(paragraph => {
+                if (paragraph.trim() === '') return '';
+                // Don't wrap lines that are already h3 or start with our bolded phrases in <p>
+                if (paragraph.trim().startsWith('<h3') || paragraph.trim().startsWith('<p class="mt-2 mb-1"><b>')) {
+                    return paragraph.replace(/\n/g, '<br>\n');
+                }
+                return '<p>' + paragraph.replace(/\n/g, '<br>\n') + '</p>';
+            }).join('');
+            
+            // Remove empty paragraphs that might have been created
+            htmlText = htmlText.replace(/<p><\/p>/g, '');
+            htmlText = htmlText.replace(/<p><br\s*\/?>\s*<\/p>/gi, ''); 
+
+            return htmlText;
+        }
+        
+        // Event Listener for "Generate Daily News" button
+        generateNewsButton.addEventListener('click', async () => {
+            const chatID = generateChatID();
+            generateNewsButton.disabled = true;
+            generateNewsButton.classList.add('opacity-50', 'cursor-not-allowed');
+            newsLoader.style.display = 'inline-block';
+            newsGenerationStatus.textContent = 'Generating news content...';
+            newsDisplayArea.innerHTML = ''; 
+
+            try {
+                const response = await fetch(newsWebhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', },
+                    body: JSON.stringify({ message: 'generate daily news', chatID: chatID }),
+                });
+
+                if (!response.ok) {
+                    let errorDetails = `Server responded with status ${response.status} ${response.statusText}.`;
+                    try { 
+                        const errorData = await response.json(); 
+                        errorDetails += ` Response: ${JSON.stringify(errorData)}`; 
+                    } catch (e) { /* Failed to parse error response body */ }
+                    throw new Error(errorDetails);
+                }
+                
+                const data = await response.json(); 
+
+                if (data && typeof data.output === 'string') {
+                    const formattedHTML = extractAndFormatNewsTextToHTML(data.output);
+                    newsDisplayArea.innerHTML = formattedHTML; 
+                    
+                    if (formattedHTML.includes("[Structured data received") || formattedHTML.includes("[Invalid input")) {
+                        newsGenerationStatus.textContent = 'News data received, but main text not found or invalid.';
+                        showMessage('Received structured data or invalid input. Main news text might be missing or in an unexpected format.', true);
+                        generateImageButton.style.display = 'none';
+                        copyTextButton.style.display = 'none';
+                    } else if (newsDisplayArea.textContent.trim() === "") { 
+                         newsGenerationStatus.textContent = 'News content received, but it appears to be empty after formatting.';
+                         showMessage('News content is empty after formatting. Check webhook output.', true);
+                         generateImageButton.style.display = 'none';
+                         copyTextButton.style.display = 'none';
+                    } else {
+                        newsGenerationStatus.textContent = 'News content generated and formatted.';
+                        showMessage('News content loaded and formatted!', false);
+                        generateImageButton.style.display = 'flex'; 
+                        copyTextButton.style.display = 'inline-flex'; 
+                    }
+                } else if (data && data.output && typeof data.output !== 'string') {
+                    console.warn('News webhook data.output was not a string but an object. Attempting to find "AI News piece" directly or stringify and process.', data.output);
+                    let newsTextToFormat = "";
+                    if (data.output["AI News piece"] && typeof data.output["AI News piece"] === 'string') {
+                        newsTextToFormat = data.output["AI News piece"];
+                    } else {
+                        newsTextToFormat = JSON.stringify(data.output); 
+                    }
+                    const formattedHTML = extractAndFormatNewsTextToHTML(newsTextToFormat);
+                    newsDisplayArea.innerHTML = formattedHTML;
+                    newsGenerationStatus.textContent = 'News content (complex type) processed.';
+                    generateImageButton.style.display = 'flex'; 
+                    copyTextButton.style.display = 'inline-flex';
+                } else {
+                    console.warn('News webhook response did not contain a "data.output" string or it was empty.', data);
+                    newsDisplayArea.innerHTML = '<p class="text-red-500">[News content not found in webhook response (data.output missing, not a string, or empty). Check console.]</p>';
+                    newsGenerationStatus.textContent = 'News content missing in response.';
+                    showMessage('News content not found in the expected part of the webhook response.', true);
+                    generateImageButton.style.display = 'none';
+                    copyTextButton.style.display = 'none';
+                }
+                
+                newsDisplayArea.focus(); 
+                const hasValidText = newsDisplayArea.textContent.trim() !== "" && !newsDisplayArea.textContent.trim().startsWith("[");
+                generateImageButton.disabled = !hasValidText;
+                copyTextButton.disabled = !hasValidText;
+                generateImageButton.classList.toggle('opacity-50', !hasValidText);
+                generateImageButton.classList.toggle('cursor-not-allowed', !hasValidText);
+                copyTextButton.classList.toggle('opacity-50', !hasValidText);
+                copyTextButton.classList.toggle('cursor-not-allowed', !hasValidText);
+
+
+            } catch (error) {
+                console.error('Full error object from news webhook:', error); 
+                let errorMessage = (error instanceof Error) ? error.message : String(error);
+                newsGenerationStatus.textContent = `Error: ${errorMessage}. Check console.`;
+                showMessage(`Failed to fetch news: ${errorMessage}. Please try again.`, true);
+                newsDisplayArea.innerHTML = '<p class="text-red-500">[Failed to load news content due to an error.]</p>'; 
+                generateImageButton.style.display = 'none';
+                copyTextButton.style.display = 'none';
+            } finally {
+                generateNewsButton.disabled = false; 
+                generateNewsButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                newsLoader.style.display = 'none';
+            }
+        });
+
+        // Event listener for "Copy Text" button
+        copyTextButton.addEventListener('click', () => {
+            const textToCopy = newsDisplayArea.textContent; 
+            if (!textToCopy) {
+                showMessage('Nothing to copy.', true);
+                return;
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy)
+                    .then(() => {
+                        showMessage('Text copied to clipboard!', false);
+                    })
+                    .catch(err => {
+                        console.error('Failed to copy text: ', err);
+                        showMessage('Failed to copy text. See console for details.', true);
+                    });
+            } else {
+                try {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = textToCopy;
+                    textArea.style.position = "fixed"; 
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    showMessage('Text copied to clipboard (fallback)!', false);
+                } catch (err) {
+                    console.error('Fallback copy failed: ', err);
+                    showMessage('Failed to copy text using fallback. Your browser might not support this feature.', true);
+                }
+            }
+        });
+
+
+        // Event Listener for "Generate Image" button (Shows Google Drive Link)
+        generateImageButton.addEventListener('click', async () => {
+            const newsText = newsDisplayArea.textContent.trim(); 
+
+            if (!newsText || newsText.startsWith("[")) {
+                showMessage('Valid news text is required to generate an image link.', true);
+                newsDisplayArea.focus();
+                return;
+            }
+
+            generateImageButton.disabled = true;
+            generateImageButton.classList.add('opacity-50', 'cursor-not-allowed');
+            downloadImageLink.style.display = 'none'; 
+            imageLoader.style.display = 'inline-block';
+            imageGenerationStatus.textContent = 'Generating image link...';
+            imageLinkDisplay.innerHTML = `<span class="text-gray-500">Generating link...</span>`; 
+            if (imageDisplaySectionDiv) imageDisplaySectionDiv.style.display = 'none'; 
+
+            let response; 
+            try {
+                response = await fetch(imageWebhookUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', }, 
+                    body: JSON.stringify({ news_text: newsText }),
+                });
+
+                if (!response.ok) {
+                    let errorDetails = `Image link generation failed: ${response.status} ${response.statusText}.`;
+                    try {
+                        const serverErrorText = await response.text(); 
+                        console.error("Server error response text:", serverErrorText); 
+                        errorDetails += ` Server says: ${serverErrorText.substring(0, 200)}`; 
+                    } catch (textError) {
+                        console.error("Could not read server error response body:", textError);
+                        errorDetails += " Could not read error response body.";
+                    }
+                    throw new Error(errorDetails);
+                }
+                
+                const contentType = response.headers.get("content-type");
+                console.log("Image Webhook Content-Type:", contentType); 
+
+                if (contentType && contentType.includes("application/json")) {
+                    const jsonData = await response.json();
+                    console.log("Image Webhook JSON response:", JSON.stringify(jsonData, null, 2)); 
+
+                    if (jsonData.webViewLink && typeof jsonData.webViewLink === 'string') {
+                        imageLinkDisplay.innerHTML = `Image Link: <a href="${jsonData.webViewLink}" target="_blank" rel="noopener noreferrer" class="break-all">${jsonData.webViewLink}</a>`;
+                        imageGenerationStatus.textContent = 'Image link generated successfully!';
+                        showMessage('Image link generated!', false);
+                    } else {
+                        console.warn("JSON response received, but 'webViewLink' key was missing or not a string.", jsonData);
+                        imageLinkDisplay.innerHTML = `<span class="text-red-500">Error: 'webViewLink' not found in response. Check console.</span>`;
+                        throw new Error("'webViewLink' not found in JSON response. Check console for full response.");
+                    }
+                } else {
+                     const responseText = await (response.bodyUsed ? response.clone().text() : response.text());
+                     console.warn("Image webhook response was not JSON. Content-Type:", contentType, "Body:", responseText.substring(0,500));
+                     imageLinkDisplay.innerHTML = `<span class="text-red-500">Error: Expected JSON response with 'webViewLink', but received different format. Check console.</span>`;
+                     throw new Error(`Expected JSON response, but received Content-Type: ${contentType}.`);
+                }
+
+            } catch (error) {
+                console.error('Full error object from image webhook:', error); 
+                
+                let errorMessage = 'An unknown error occurred during image link generation.';
+                if (error instanceof Error) { 
+                    errorMessage = error.message;
+                } else if (typeof error === 'object' && error !== null) { 
+                    try { errorMessage = JSON.stringify(error); } catch (e) { /* ignore stringify error */ }
+                } else if (error) { 
+                    errorMessage = String(error);
+                }
+
+                if (error instanceof TypeError && error.message.toLowerCase().includes("failed to fetch")) {
+                     errorMessage = 'Network error: Could not connect to the image service. Check CORS or server status.';
+                     console.error("A 'TypeError: Failed to fetch' occurred during image link generation. Check network connection, CORS policy, and server availability.");
+                }
+                
+                imageGenerationStatus.textContent = `Error: ${errorMessage}.`; 
+                imageLinkDisplay.innerHTML = `<span class="text-red-500">Error generating link: ${errorMessage}</span>`;
+                showMessage(`Image link generation failed: ${errorMessage}`, true);
+            } finally {
+                generateImageButton.disabled = false;
+                generateImageButton.classList.remove('opacity-50', 'cursor-not-allowed');
+                imageLoader.style.display = 'none';
+            }
+        });
+
+        // Initial state setup
+        generateImageButton.style.display = 'none';
+        copyTextButton.style.display = 'none';
+
+    </script>
+</body>
+</html>
